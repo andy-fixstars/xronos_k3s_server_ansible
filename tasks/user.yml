@@ -1,0 +1,34 @@
+---
+- name: Add user to k3s group
+  register: _k3s_group
+  become: true
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups:
+      - k3s
+    append: true
+
+- name: Create directory ~/.kube
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.kube"
+    state: directory
+    owner: "{{ ansible_user }}"
+    mode: "u=rwx,g=rx,o="
+
+- name: Symmlink k3s config file to ~/.kube/config
+  ansible.builtin.file:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: "{{ ansible_env.HOME }}/.kube/config"
+    state: link
+
+- name: Configure default KUBECONFIG for user
+  ansible.builtin.lineinfile:
+    path: "{{ ansible_env.HOME }}/.bashrc"
+    regexp: 'export KUBECONFIG='
+    line: 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml # Added by xronos_k3s_server_ansible'
+
+- name: Add k3s autocomplete to user bashrc
+  ansible.builtin.lineinfile:
+    path: "{{ ansible_env.HOME }}/.bashrc"
+    regexp: '\.\s+<\(k3s completion bash\)'
+    line: ". <(k3s completion bash)  # Added by xronos_k3s_server_ansible"

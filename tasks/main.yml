@@ -1,0 +1,6 @@
+---
+- name: Install k3s
+  ansible.builtin.import_tasks: k3s.yml
+
+- name: Configure user {{ ansible_user }} for k3s
+  ansible.builtin.import_tasks: user.yml

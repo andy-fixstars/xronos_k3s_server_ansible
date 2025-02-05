@@ -1,0 +1,115 @@
+---
+- name: Apt update cache
+  become: true
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600 # 1 hr
+
+# used by k3s install script
+- name: Apt install policycoreutils
+  become: true
+  ansible.builtin.apt:
+    name: policycoreutils
+
+- name: Enable IPv4 forwarding
+  become: true
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    state: present
+    reload: true
+
+- name: Enable IPv6 forwarding
+  become: true
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.all.forwarding
+    value: "1"
+    state: present
+    reload: true
+
+- name: UFW open k3s API port
+  become: true
+  community.general.ufw:
+    rule: allow
+    port: 6443
+    proto: tcp
+
+- name: UFW enable etcd ports
+  become: true
+  community.general.ufw:
+    rule: allow
+    port: "2379:2381"
+    proto: tcp
+
+- name: UFW allow cluster and service CIDRs
+  loop: "{{ (k3s_cluster_cidr + ',' + k3s_service_cidr) | split(',') }}"
+  become: true
+  community.general.ufw:
+    rule: allow
+    src: '{{ item }}'
+
+- name: Query k3s installed version
+  register: _k3s_version_query
+  changed_when: false
+  failed_when: false
+  ansible.builtin.command:
+    cmd: /usr/local/bin/k3s --version
+
+- name: Download k3s install script
+  ansible.builtin.get_url:
+    url: https://get.k3s.io/
+    dest: "{{ ansible_env.HOME }}/.cache/k3s-install.sh"
+    mode: 0755
+    timeout: 120
+
+- name: Install k3s server {{ k3s_version }}
+  when: _k3s_version_query.rc != 0
+        or (k3s_version and k3s_version not in _k3s_version_query.stdout)
+  ansible.builtin.command:
+    cmd: "{{ ansible_env.HOME }}/.cache/k3s-install.sh server"
+  environment:
+    INSTALL_K3S_VERSION: "{{ k3s_version | default('stable') }}"
+    K3S_KUBECONFIG_MODE: "0660"
+    K3S_TOKEN: "{{ k3s_token }}"
+
+- name: Service k3s start
+  become: true
+  ansible.builtin.systemd:
+    name: k3s
+    state: started
+    enabled: true
+
+- name: Create group 
+  become: true
+  ansible.builtin.group:
+    name: k3s
+    state: present
+
+- name: Add group k3s to rancher configuration folder
+  become: true
+  ansible.builtin.file:
+    path: /etc/rancher/k3s
+    state: directory
+    group: k3s
+    mode: u=rwx,g=rwx,o=rx
+
+- name: Add group k3s to k3s configuration file
+  become: true
+  ansible.builtin.file:
+    path: /etc/rancher/k3s/k3s.yaml
+    group: k3s
+    mode: u=rw,g=rw,o=
+
+- name: Pip install kubernetes
+  ansible.builtin.pip:
+    name: kubernetes{{ '==' ~ k3s_python_module_version if k3s_python_module_version else '' }}
+    break_system_packages: true
+    extra_args: --user
+
+- name: Verify k3s installed version
+  register: _k3s_version_query
+  changed_when: false
+  failed_when: _k3s_version_query.rc != 0
+              or (k3s_version and k3s_version not in _k3s_version_query.stdout)
+  ansible.builtin.command:
+    cmd: /usr/local/bin/k3s --version
