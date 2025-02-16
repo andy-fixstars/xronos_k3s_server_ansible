@@ -32,15 +32,15 @@ Remote host:
     - name: xronos_k3s_server_ansible
       role: xronos_k3s_server_ansible
       vars:
-        k3s_token: ""   # your secret token here
+        xronos_k3s_server_token: ""   # your secret token here
 ```
 
 After running, the service `k3s-agent` should be running on the remote host.
 
 ## Variables
 
-- `k3s_token`: secret token to use for authenticating k3s agent to the k3s control node. Required.
-- `k3s_version`: version identifier of k3s to install. Defaults to empty (latest).
-- `k3s_python_module_version`: version of the kubernetes python module to install. Defaults to empty (latest).
-- `k3s_cluster_cidr`: Cluster CIDR. Defaults to `10.42.0.0/16`.
-- `k3s_service_cidr`: Cluster service CIDR. Defaults to `10.43.0.0/16`.
+- `xronos_k3s_server_token`: secret token to use for authenticating k3s agent to the k3s control node. Required.
+- `xronos_k3s_server_version`: version identifier of k3s to install. Defaults to empty (latest).
+- `xronos_k3s_server_python_module_version`: version of the kubernetes python module to install. Defaults to empty (latest).
+- `xronos_k3s_server_cluster_cidr`: Cluster CIDR. Defaults to `10.42.0.0/16`.
+- `xronos_k3s_server_cluster_cidr`: Cluster service CIDR. Defaults to `10.43.0.0/16`.

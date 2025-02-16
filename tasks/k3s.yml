@@ -42,7 +42,7 @@
     proto: tcp
 
 - name: UFW allow cluster and service CIDRs
-  loop: "{{ (k3s_cluster_cidr + ',' + k3s_service_cidr) | split(',') }}"
+  loop: "{{ (xronos_k3s_server_cluster_cidr + ',' + xronos_k3s_server_cluster_cidr) | split(',') }}"
   become: true
   community.general.ufw:
     rule: allow
@@ -57,7 +57,7 @@
 
 - name: Install k3s server
   when: _k3s_version_query.rc != 0
-        or (k3s_version and k3s_version not in _k3s_version_query.stdout)
+        or (xronos_k3s_server_version and xronos_k3s_server_version not in _k3s_version_query.stdout)
   block:
     - name: Stat ~/.cache
       register: _cache_folder_query
@@ -78,13 +78,16 @@
         mode: 0755
         timeout: 120
 
-    - name: Install k3s server {{ k3s_version }}
+    - name: Install k3s server {{ xronos_k3s_server_version }}
       ansible.builtin.command:
-        cmd: "{{ ansible_env.HOME }}/.cache/k3s-install.sh server"
+        cmd: |-
+          {{ ansible_env.HOME }}/.cache/k3s-install.sh server
+            --cluster-cidr {{ xronos_k3s_server_cluster_cidr }}
+            --service-cidr {{ xronos_k3s_server_service_cidr }}
       environment:
-        INSTALL_K3S_VERSION: "{{ k3s_version | default('stable') }}"
+        INSTALL_K3S_VERSION: "{{ xronos_k3s_server_version | default('stable') }}"
         K3S_KUBECONFIG_MODE: "0660"
-        K3S_TOKEN: "{{ k3s_token }}"
+        K3S_TOKEN: "{{ xronos_k3s_server_token }}"
 
 - name: Service k3s start
   become: true
@@ -116,7 +119,7 @@
 
 - name: Pip install kubernetes
   ansible.builtin.pip:
-    name: kubernetes{{ '==' ~ k3s_python_module_version if k3s_python_module_version else '' }}
+    name: kubernetes{{ '==' ~ xronos_k3s_server_python_module_version if xronos_k3s_server_python_module_version else '' }}
     break_system_packages: true
     extra_args: --user
 
@@ -124,6 +127,6 @@
   register: _k3s_version_query
   changed_when: false
   failed_when: _k3s_version_query.rc != 0
-              or (k3s_version and k3s_version not in _k3s_version_query.stdout)
+              or (xronos_k3s_server_version and xronos_k3s_server_version not in _k3s_version_query.stdout)
   ansible.builtin.command:
     cmd: /usr/local/bin/k3s --version
