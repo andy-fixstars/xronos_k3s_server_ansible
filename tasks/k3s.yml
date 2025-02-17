@@ -42,7 +42,7 @@
     proto: tcp
 
 - name: UFW allow cluster and service CIDRs
-  loop: "{{ (xronos_k3s_server_cluster_cidr + ',' + xronos_k3s_server_cluster_cidr) | split(',') }}"
+  loop: "{{ (xronos_k3s_server_cluster_cidr + ',' + xronos_k3s_server_service_cidr) | split(',') }}"
   become: true
   community.general.ufw:
     rule: allow
