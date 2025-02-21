@@ -56,7 +56,7 @@
     cmd: /usr/local/bin/k3s --version
 
 - name: Install k3s server
-  when: _k3s_version_query.rc != 0
+  when: (_k3s_version_query.rc != 0)
         or (xronos_k3s_server_version and xronos_k3s_server_version not in _k3s_version_query.stdout)
   block:
     - name: Stat ~/.cache
