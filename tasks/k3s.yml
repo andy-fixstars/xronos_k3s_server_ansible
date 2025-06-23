@@ -84,6 +84,7 @@
           {{ ansible_env.HOME }}/.cache/k3s-install.sh server
             --cluster-cidr {{ xronos_k3s_server_cluster_cidr }}
             --service-cidr {{ xronos_k3s_server_service_cidr }}
+            --node-label host={{ inventory_hostname }}
       environment:
         INSTALL_K3S_VERSION: "{{ xronos_k3s_server_version | default('stable') }}"
         K3S_KUBECONFIG_MODE: "0660"
